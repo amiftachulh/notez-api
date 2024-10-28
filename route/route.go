@@ -14,4 +14,6 @@ func Setup(app *fiber.App) {
 	auth := v1.Group("/auth")
 	auth.Post("/register", middleware.Validate(new(schema.Register)), handler.Register)
 	auth.Post("/login", middleware.Validate(new(schema.Login)), handler.Login)
+	auth.Post("/logout", handler.Logout)
+	auth.Get("/check", handler.CheckAuth)
 }

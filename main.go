@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"notez-api/config"
 	"notez-api/route"
 
@@ -11,5 +12,5 @@ func main() {
 	config.Setup()
 	app := fiber.New()
 	route.Setup(app)
-	app.Listen(":3000")
+	log.Fatal(app.Listen(":3000"))
 }

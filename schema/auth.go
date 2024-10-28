@@ -36,7 +36,7 @@ func (r Register) Validate() error {
 			&r.Password,
 			validation.Required.Error("Password is required."),
 			validation.RuneLength(8, 64).Error("Password must be between 8 and 64 characters."),
-			validation.Match(regexp.MustCompile("[^\x00-\x1F\x7F]")).
+			validation.Match(regexp.MustCompile(`^[^\p{Cc}]+$`)).
 				Error("Password can't contain invalid characters."),
 		),
 		validation.Field(&r.ConfirmPassword, validation.By(samePassword(r.Password))),
