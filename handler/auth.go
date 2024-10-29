@@ -23,10 +23,11 @@ func Register(c *fiber.Ctx) error {
 	query := "SELECT EXISTS(SELECT 1 FROM users WHERE lower(email) = lower($1))"
 	err := db.DB.QueryRow(query, body.Email).Scan(&exist)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return c.SendStatus(fiber.StatusInternalServerError)
+		log.Println(err)
+		return fiber.ErrInternalServerError
 	}
 	if exist {
-		return c.Status(fiber.StatusConflict).JSON(model.ErrResp{
+		return c.Status(fiber.StatusConflict).JSON(model.Response{
 			Message: "Email already used.",
 		})
 	}
@@ -39,34 +40,26 @@ func Register(c *fiber.Ctx) error {
 		KeyLength:   32,
 	})
 	if err != nil {
-		return c.SendStatus(fiber.StatusInternalServerError)
+		log.Println(err)
+		return fiber.ErrInternalServerError
 	}
 
 	id, err := uuid.NewV7()
 	if err != nil {
-		return c.SendStatus(fiber.StatusInternalServerError)
+		log.Println(err)
+		return fiber.ErrInternalServerError
 	}
 
 	query = "INSERT INTO users (id, email, password) VALUES ($1, $2, $3)"
 	_, err = db.DB.Exec(query, id, body.Email, hash)
 	if err != nil {
-		return c.SendStatus(fiber.StatusInternalServerError)
+		log.Println(err)
+		return fiber.ErrInternalServerError
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(model.ErrResp{
+	return c.Status(fiber.StatusCreated).JSON(model.Response{
 		Message: "Register success.",
 	})
-}
-
-type user struct {
-	ID        uuid.UUID `json:"id"`
-	Name      *string   `json:"name"`
-	Email     string    `json:"email"`
-	Password  string    `json:"-"`
-	Role      string    `json:"role"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	ExpiresAt time.Time `json:"expires_at"`
 }
 
 func Login(c *fiber.Ctx) error {
@@ -79,21 +72,21 @@ func Login(c *fiber.Ctx) error {
 		Scan(&u.ID, &u.Name, &u.Email, &u.Password, &u.Role, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return c.Status(fiber.StatusUnauthorized).JSON(model.ErrResp{
+			return c.Status(fiber.StatusUnauthorized).JSON(model.Response{
 				Message: "Invalid email or password.",
 			})
 		}
 		log.Println(err)
-		return c.SendStatus(fiber.StatusInternalServerError)
+		return fiber.ErrInternalServerError
 	}
 
 	match, err := argon2id.ComparePasswordAndHash(body.Password, u.Password)
 	if err != nil {
 		log.Println(err)
-		return c.SendStatus(fiber.StatusInternalServerError)
+		return fiber.ErrInternalServerError
 	}
 	if !match {
-		return c.Status(fiber.StatusUnauthorized).JSON(model.ErrResp{
+		return c.Status(fiber.StatusUnauthorized).JSON(model.Response{
 			Message: "Invalid email or password.",
 		})
 	}
@@ -108,7 +101,7 @@ func Login(c *fiber.Ctx) error {
 	_, err = db.DB.Exec(query, sessionID, u.ID, expiresAt)
 	if err != nil {
 		log.Println(err)
-		return c.SendStatus(fiber.StatusInternalServerError)
+		return fiber.ErrInternalServerError
 	}
 
 	cookie := new(fiber.Cookie)
@@ -125,22 +118,22 @@ func Login(c *fiber.Ctx) error {
 func Logout(c *fiber.Ctx) error {
 	sessionID := c.Cookies("session")
 	if sessionID == "" {
-		return c.SendStatus(fiber.StatusUnauthorized)
+		return fiber.ErrUnauthorized
 	}
 
 	query := "DELETE FROM sessions WHERE id = $1"
 	result, err := db.DB.Exec(query, sessionID)
 	if err != nil {
 		log.Println(err)
-		return c.SendStatus(fiber.StatusInternalServerError)
+		return fiber.ErrInternalServerError
 	}
 	rows, err := result.RowsAffected()
 	if err != nil {
 		log.Println(err)
-		return c.SendStatus(fiber.StatusInternalServerError)
+		return fiber.ErrInternalServerError
 	}
 	if rows == 0 {
-		return c.SendStatus(fiber.StatusUnauthorized)
+		return fiber.ErrUnauthorized
 	}
 
 	cookie := new(fiber.Cookie)
@@ -157,7 +150,7 @@ func Logout(c *fiber.Ctx) error {
 func CheckAuth(c *fiber.Ctx) error {
 	sessionID := c.Cookies("session")
 	if sessionID == "" {
-		return c.SendStatus(fiber.StatusUnauthorized)
+		return fiber.ErrUnauthorized
 	}
 
 	var u user
@@ -166,17 +159,17 @@ func CheckAuth(c *fiber.Ctx) error {
 		FROM sessions s
 		JOIN users u
 		ON s.user_id = u.id
-		WHERE s.id = $1
+		WHERE s.id = $1 AND s.expires_at > now()
 	`
 	err := db.DB.
 		QueryRow(query, sessionID).
 		Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.CreatedAt, &u.UpdatedAt, &u.ExpiresAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return c.SendStatus(fiber.StatusUnauthorized)
+			return fiber.ErrUnauthorized
 		}
 		log.Println(err)
-		return c.SendStatus(fiber.StatusInternalServerError)
+		return fiber.ErrInternalServerError
 	}
 
 	return c.JSON(u)

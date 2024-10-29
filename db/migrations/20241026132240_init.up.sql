@@ -16,13 +16,13 @@ CREATE UNIQUE INDEX users_email_unique ON users (lower(email));
 
 CREATE TABLE IF NOT EXISTS sessions (
   id TEXT PRIMARY KEY,
-  user_id UUID REFERENCES users (id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   expires_at TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS notes (
   id UUID PRIMARY KEY,
-  user_id UUID REFERENCES users (id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   content TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT 'now()',

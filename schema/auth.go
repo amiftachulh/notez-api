@@ -3,6 +3,7 @@ package schema
 import (
 	"errors"
 	"regexp"
+	"time"
 
 	"github.com/invopop/validation"
 	"github.com/invopop/validation/is"
@@ -53,4 +54,14 @@ func (l Login) Validate() error {
 		validation.Field(&l.Email, validation.Required.Error("Email is required.")),
 		validation.Field(&l.Password, validation.Required.Error("Password is required.")),
 	)
+}
+
+type User struct {
+	ID        string    `json:"id"`
+	Name      *string   `json:"name"`
+	Email     string    `json:"email"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 }

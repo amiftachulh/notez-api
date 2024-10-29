@@ -16,7 +16,7 @@ func Validate(v interface{}) fiber.Handler {
 		if err := c.BodyParser(v); err != nil {
 			var jsonErr *json.UnmarshalTypeError
 			if errors.As(err, &jsonErr) {
-				return c.Status(fiber.StatusBadRequest).JSON(model.ErrResp{
+				return c.Status(fiber.StatusBadRequest).JSON(model.Response{
 					Message: "Invalid input for field: " + jsonErr.Field,
 					Error: fmt.Sprintf(
 						"Expected type %s, but received %s.",
@@ -25,7 +25,7 @@ func Validate(v interface{}) fiber.Handler {
 					),
 				})
 			}
-			return c.Status(fiber.StatusBadRequest).JSON(model.ErrResp{
+			return c.Status(fiber.StatusBadRequest).JSON(model.Response{
 				Message: "Invalid JSON.",
 				Error:   err,
 			})
@@ -33,7 +33,7 @@ func Validate(v interface{}) fiber.Handler {
 
 		if validator, ok := v.(interface{ Validate() error }); ok {
 			if err := validator.Validate(); err != nil {
-				return c.Status(fiber.StatusUnprocessableEntity).JSON(model.ErrResp{
+				return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
 					Message: "Validation error.",
 					Error:   err,
 				})

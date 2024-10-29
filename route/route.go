@@ -16,4 +16,13 @@ func Setup(app *fiber.App) {
 	auth.Post("/login", middleware.Validate(new(schema.Login)), handler.Login)
 	auth.Post("/logout", handler.Logout)
 	auth.Get("/check", handler.CheckAuth)
+
+	notes := v1.Group("/notes").Use(middleware.Authenticate)
+
+	// notes := protected.Group("/notes")
+	notes.Post("/", middleware.Validate(new(schema.Note)), handler.CreateNote)
+	notes.Get("/", handler.GetNotes)
+	notes.Get("/:id", handler.GetNoteByID)
+	notes.Put("/:id", middleware.Validate(new(schema.Note)), handler.UpdateNote)
+	notes.Delete("/:id", handler.DeleteNote)
 }

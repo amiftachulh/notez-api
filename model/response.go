@@ -1,6 +1,6 @@
 package model
 
-type ErrResp struct {
+type Response struct {
 	Message string      `json:"message"`
 	Error   interface{} `json:"error,omitempty"`
 }
