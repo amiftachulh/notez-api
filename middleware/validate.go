@@ -27,7 +27,6 @@ func Validate(v interface{}) fiber.Handler {
 			}
 			return c.Status(fiber.StatusBadRequest).JSON(model.Response{
 				Message: "Invalid JSON.",
-				Error:   err,
 			})
 		}
 

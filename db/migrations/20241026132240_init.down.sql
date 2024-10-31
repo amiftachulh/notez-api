@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS notes_users;
+
 DROP TABLE IF EXISTS notes;
 
 DROP TABLE IF EXISTS sessions;
@@ -5,5 +7,9 @@ DROP TABLE IF EXISTS sessions;
 DROP TABLE IF EXISTS users;
 
 DROP TYPE IF EXISTS user_role;
+
+DROP EXTENSION IF EXISTS "moddatetime";
+
+DROP EXTENSION IF EXISTS "citext";
 
 DROP EXTENSION IF EXISTS "uuid-ossp";

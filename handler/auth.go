@@ -8,7 +8,6 @@ import (
 	"log"
 	"notez-api/db"
 	"notez-api/model"
-	"notez-api/schema"
 	"time"
 
 	"github.com/alexedwards/argon2id"
@@ -17,16 +16,16 @@ import (
 )
 
 func Register(c *fiber.Ctx) error {
-	body := c.Locals("body").(*schema.Register)
+	body := c.Locals("body").(*model.Register)
 
-	var exist bool
-	query := "SELECT EXISTS(SELECT 1 FROM users WHERE lower(email) = lower($1))"
-	err := db.DB.QueryRow(query, body.Email).Scan(&exist)
+	var exists bool
+	query := "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)"
+	err := db.DB.QueryRow(query, body.Email).Scan(&exists)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.Println(err)
 		return fiber.ErrInternalServerError
 	}
-	if exist {
+	if exists {
 		return c.Status(fiber.StatusConflict).JSON(model.Response{
 			Message: "Email already used.",
 		})
@@ -63,7 +62,7 @@ func Register(c *fiber.Ctx) error {
 }
 
 func Login(c *fiber.Ctx) error {
-	body := c.Locals("body").(*schema.Login)
+	body := c.Locals("body").(*model.Login)
 
 	var u user
 	query := "SELECT * FROM users WHERE lower(email) = lower($1)"

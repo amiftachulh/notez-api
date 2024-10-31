@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log"
 	"notez-api/db"
-	"notez-api/schema"
+	"notez-api/model"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -16,7 +16,7 @@ func Authenticate(c *fiber.Ctx) error {
 		return fiber.ErrUnauthorized
 	}
 
-	var u schema.User
+	var u model.User
 	query := `
 		SELECT u.id, u.name, u.email, u.role, u.created_at, u.updated_at, s.expires_at
 		FROM sessions s
