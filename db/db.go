@@ -14,6 +14,6 @@ func Setup() {
 	var err error
 	DB, err = sqlx.Connect("pgx", os.Getenv("DATABASE_URL"))
 	if err != nil {
-		log.Fatalln("Failed to connect to database:", err)
+		log.Fatalln("Failed to connect to the database:", err)
 	}
 }

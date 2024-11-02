@@ -52,7 +52,7 @@ END $$;
 CREATE TABLE IF NOT EXISTS notes_users (
   note_id UUID NOT NULL REFERENCES notes (id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  role note_role NOT NULL DEFAULT 'viewer',
+  role note_role NOT NULL,
   PRIMARY KEY (note_id, user_id)
 );
 
@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS note_invitations (
   id UUID PRIMARY KEY,
   note_id UUID NOT NULL REFERENCES notes (id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  role note_role NOT NULL DEFAULT 'viewer',
+  inviter_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  role note_role NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -3,7 +3,6 @@ package handler
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 	"notez-api/db"
 	"notez-api/model"
@@ -14,7 +13,7 @@ import (
 
 func CreateNote(c *fiber.Ctx) error {
 	body := c.Locals("body").(*model.Note)
-	user := c.Locals("user").(model.User)
+	auth := c.Locals("auth").(model.User)
 
 	id, err := uuid.NewV7()
 	if err != nil {
@@ -23,7 +22,7 @@ func CreateNote(c *fiber.Ctx) error {
 	}
 
 	query := "INSERT INTO notes (id, title, content, user_id) VALUES ($1, $2, $3, $4)"
-	_, err = db.DB.Exec(query, id, body.Title, body.Content, user.ID)
+	_, err = db.DB.Exec(query, id, body.Title, body.Content, auth.ID)
 	if err != nil {
 		log.Println(err)
 		return fiber.ErrInternalServerError
@@ -35,7 +34,7 @@ func CreateNote(c *fiber.Ctx) error {
 }
 
 func GetNotes(c *fiber.Ctx) error {
-	user := c.Locals("user").(model.User)
+	auth := c.Locals("auth").(model.User)
 
 	notes := []note{}
 	query := `
@@ -51,7 +50,7 @@ func GetNotes(c *fiber.Ctx) error {
 		WHERE user_id = $1
 		LIMIT 10
 	`
-	rows, err := db.DB.Query(query, user.ID)
+	rows, err := db.DB.Query(query, auth.ID)
 	if err != nil {
 		log.Println(err)
 		return fiber.ErrInternalServerError
@@ -75,13 +74,19 @@ func GetNotes(c *fiber.Ctx) error {
 }
 
 func GetNoteByID(c *fiber.Ctx) error {
-	user := c.Locals("user").(model.User)
+	auth := c.Locals("auth").(model.User)
 	noteID := c.Params("id")
+
+	if _, err := uuid.Parse(noteID); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
+			Message: "Invalid note ID.",
+		})
+	}
 
 	var n note
 	query := "SELECT id, title, content, created_at, updated_at FROM notes WHERE id = $1 AND user_id = $2"
 	err := db.DB.
-		QueryRow(query, noteID, user.ID).
+		QueryRow(query, noteID, auth.ID).
 		Scan(&n.ID, &n.Title, &n.Content, &n.CreatedAt, &n.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -98,11 +103,17 @@ func GetNoteByID(c *fiber.Ctx) error {
 
 func UpdateNote(c *fiber.Ctx) error {
 	body := c.Locals("body").(*model.Note)
-	user := c.Locals("user").(model.User)
+	auth := c.Locals("auth").(model.User)
 	noteID := c.Params("id")
 
+	if _, err := uuid.Parse(noteID); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
+			Message: "Invalid note ID.",
+		})
+	}
+
 	query := "UPDATE notes SET title = $1, content = $2 WHERE id = $3 AND user_id = $4"
-	result, err := db.DB.Exec(query, body.Title, body.Content, noteID, user.ID)
+	result, err := db.DB.Exec(query, body.Title, body.Content, noteID, auth.ID)
 	if err != nil {
 		log.Println(err)
 		return fiber.ErrInternalServerError
@@ -124,11 +135,17 @@ func UpdateNote(c *fiber.Ctx) error {
 }
 
 func DeleteNote(c *fiber.Ctx) error {
-	user := c.Locals("user").(model.User)
+	auth := c.Locals("auth").(model.User)
 	noteID := c.Params("id")
 
+	if _, err := uuid.Parse(noteID); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
+			Message: "Invalid note ID.",
+		})
+	}
+
 	query := "DELETE FROM notes WHERE id = $1 AND user_id = $2"
-	result, err := db.DB.Exec(query, noteID, user.ID)
+	result, err := db.DB.Exec(query, noteID, auth.ID)
 	if err != nil {
 		log.Println(err)
 		return fiber.ErrInternalServerError
@@ -145,59 +162,4 @@ func DeleteNote(c *fiber.Ctx) error {
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
-}
-
-func InviteUserToNote(c *fiber.Ctx) error {
-	user := c.Locals("user").(model.User)
-	body := c.Locals("body").(*model.NoteInvite)
-	noteID := c.Params("id")
-
-	var noteExist bool
-	query := "SELECT EXISTS(SELECT 1 FROM notes WHERE id = $1 AND user_id = $2)"
-	err := db.DB.QueryRow(query, noteID, user.ID).Scan(&noteExist)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		log.Println(err)
-		return fiber.ErrInternalServerError
-	}
-	if !noteExist {
-		return c.Status(fiber.StatusNotFound).JSON(model.Response{
-			Message: "Note not found.",
-		})
-	}
-
-	var targetUserID uuid.UUID
-	query = "SELECT id FROM users WHERE email = $1"
-	if err = db.DB.QueryRow(query, body.Email).Scan(&targetUserID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return c.Status(fiber.StatusNotFound).JSON(model.Response{
-				Message: fmt.Sprintf("User with email %s not found.", body.Email),
-			})
-		}
-		log.Println(err)
-		return fiber.ErrInternalServerError
-	}
-
-	var inviteExist bool
-	query = "SELECT EXISTS(SELECT 1 FROM note_invites WHERE note_id = $1 AND user_id = $2)"
-	err = db.DB.QueryRow(query, noteID, targetUserID).Scan(&inviteExist)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		log.Println(err)
-		return fiber.ErrInternalServerError
-	}
-	if inviteExist {
-		return c.Status(fiber.StatusConflict).JSON(model.Response{
-			Message: "User already invited.",
-		})
-	}
-
-	query = "INSERT INTO note_invites (note_id, user_id) VALUES ($1, $2)"
-	_, err = db.DB.Exec(query, noteID, targetUserID)
-	if err != nil {
-		log.Println(err)
-		return fiber.ErrInternalServerError
-	}
-
-	return c.JSON(model.Response{
-		Message: "User invited to note.",
-	})
 }

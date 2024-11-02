@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/invopop/validation"
 	"github.com/invopop/validation/is"
 )
@@ -57,7 +58,7 @@ func (l Login) Validate() error {
 }
 
 type User struct {
-	ID        string    `json:"id"`
+	ID        uuid.UUID `json:"id"`
 	Name      *string   `json:"name"`
 	Email     string    `json:"email"`
 	Role      string    `json:"role"`

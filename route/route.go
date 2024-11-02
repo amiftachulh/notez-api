@@ -23,5 +23,17 @@ func Setup(app *fiber.App) {
 	notes.Get("/:id", handler.GetNoteByID)
 	notes.Put("/:id", middleware.Validate(new(model.Note)), handler.UpdateNote)
 	notes.Delete("/:id", handler.DeleteNote)
-	notes.Post("/:id/invite", middleware.Validate(new(model.NoteInvite)), handler.InviteUserToNote)
+
+	noteInvitation := v1.Group("/note-invitations").Use(middleware.Authenticate)
+	noteInvitation.Post(
+		"/",
+		middleware.Validate(&model.NoteInvitation{Role: "viewer"}),
+		handler.CreateNoteInvitation,
+	)
+	noteInvitation.Get("/", handler.GetNoteInvitations)
+	noteInvitation.Patch(
+		"/:id",
+		middleware.Validate(new(model.RespondNoteInvitation)),
+		handler.RespondNoteInvitation,
+	)
 }

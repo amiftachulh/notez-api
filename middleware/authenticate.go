@@ -35,6 +35,6 @@ func Authenticate(c *fiber.Ctx) error {
 		return err
 	}
 
-	c.Locals("user", u)
+	c.Locals("auth", u)
 	return c.Next()
 }

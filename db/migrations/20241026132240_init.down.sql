@@ -1,4 +1,8 @@
+DROP TABLE IF EXISTS note_invitations;
+
 DROP TABLE IF EXISTS notes_users;
+
+DROP TYPE IF EXISTS note_role;
 
 DROP TABLE IF EXISTS notes;
 

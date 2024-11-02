@@ -24,3 +24,22 @@ type note struct {
 	CreatedAt string  `json:"created_at"`
 	UpdatedAt string  `json:"updated_at"`
 }
+
+type noteInviter struct {
+	ID    uuid.UUID `json:"id"`
+	Email string    `json:"email"`
+	Name  *string   `json:"name"`
+}
+
+type noteInvitationNote struct {
+	ID    uuid.UUID `json:"id"`
+	Title string    `json:"title"`
+}
+
+type noteInvitationResponse struct {
+	ID        uuid.UUID          `json:"id"`
+	Note      noteInvitationNote `json:"note"`
+	Inviter   noteInviter        `json:"inviter"`
+	Role      string             `json:"role"`
+	CreatedAt time.Time          `json:"created_at"`
+}

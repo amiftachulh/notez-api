@@ -93,7 +93,7 @@ func Login(c *fiber.Ctx) error {
 	bytes := make([]byte, 15)
 	rand.Read(bytes)
 	sessionID := base64.RawURLEncoding.EncodeToString(bytes)
-	expiresAt := time.Now().Add(7 * 24 * time.Hour)
+	expiresAt := time.Now().Add(7 * 24 * time.Hour).Truncate(time.Microsecond)
 	u.ExpiresAt = expiresAt
 
 	query = "INSERT INTO sessions (id, user_id, expires_at) VALUES ($1, $2, $3)"
