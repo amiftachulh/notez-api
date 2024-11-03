@@ -1,4 +1,4 @@
-module notez-api
+module github.com/amiftachulh/notez-api
 
 go 1.23.2
 

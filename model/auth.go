@@ -1,7 +1,6 @@
 package model
 
 import (
-	"errors"
 	"regexp"
 	"time"
 
@@ -20,7 +19,7 @@ func samePassword(str string) validation.RuleFunc {
 	return func(value interface{}) error {
 		s, _ := value.(string)
 		if s != str {
-			return errors.New("Passwords do not match")
+			return validation.NewError("passwords_not_match", "Passwords do not match.")
 		}
 		return nil
 	}
@@ -57,10 +56,11 @@ func (l Login) Validate() error {
 	)
 }
 
-type User struct {
+type AuthUser struct {
 	ID        uuid.UUID `json:"id"`
 	Name      *string   `json:"name"`
 	Email     string    `json:"email"`
+	Password  string    `json:"-"`
 	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"notez-api/model"
+
+	"github.com/amiftachulh/notez-api/model"
 
 	"github.com/gofiber/fiber/v2"
 )

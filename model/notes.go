@@ -1,15 +1,24 @@
 package model
 
 import (
+	"github.com/google/uuid"
 	"github.com/invopop/validation"
 )
 
 type Note struct {
+	ID        uuid.UUID `json:"id"`
+	Title     string    `json:"title,omitempty"`
+	Content   *string   `json:"content"`
+	CreatedAt string    `json:"created_at,omitempty"`
+	UpdatedAt string    `json:"updated_at,omitempty"`
+}
+
+type NoteInput struct {
 	Title   string  `json:"title"`
 	Content *string `json:"content"`
 }
 
-func (c Note) Validate() error {
+func (c NoteInput) Validate() error {
 	return validation.ValidateStruct(
 		&c,
 		validation.Field(

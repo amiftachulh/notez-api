@@ -2,7 +2,8 @@ package config
 
 import (
 	"log"
-	"notez-api/db"
+
+	"github.com/amiftachulh/notez-api/db"
 
 	"github.com/joho/godotenv"
 )

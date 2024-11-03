@@ -2,8 +2,9 @@ package main
 
 import (
 	"log"
-	"notez-api/config"
-	"notez-api/route"
+
+	"github.com/amiftachulh/notez-api/config"
+	"github.com/amiftachulh/notez-api/route"
 
 	"github.com/gofiber/fiber/v2"
 )
