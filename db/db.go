@@ -1,19 +1,23 @@
 package db
 
 import (
+	"database/sql"
 	"log"
 	"os"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/jmoiron/sqlx"
 )
 
-var DB *sqlx.DB
+var DB *sql.DB
 
 func Setup() {
 	var err error
-	DB, err = sqlx.Connect("pgx", os.Getenv("DATABASE_URL"))
+	DB, err = sql.Open("pgx", os.Getenv("DATABASE_URL"))
 	if err != nil {
-		log.Fatalln("Failed to connect to the database:", err)
+		log.Fatalln("Failed to create database connection:", err)
+	}
+	err = DB.Ping()
+	if err != nil {
+		log.Fatalln("Failed to ping the database:", err)
 	}
 }

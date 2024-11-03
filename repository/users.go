@@ -14,13 +14,8 @@ import (
 func CheckEmailExists(email string) (bool, error) {
 	var exists bool
 	query := "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)"
-	if err := db.DB.QueryRow(query, email).Scan(&exists); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
-		}
-		return false, err
-	}
-	return exists, nil
+	err := db.DB.QueryRow(query, email).Scan(&exists)
+	return exists, err
 }
 
 func RegisterUser(email, password string) error {
