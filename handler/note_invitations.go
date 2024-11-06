@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/amiftachulh/notez-api/model"
-	"github.com/amiftachulh/notez-api/repository"
+	"github.com/amiftachulh/notez-api/service"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -20,9 +20,9 @@ func CreateNoteInvitation(c *fiber.Ctx) error {
 		})
 	}
 
-	noteExists, err := repository.CheckNoteExists(body.NoteID, auth.ID)
+	noteExists, err := service.CheckNoteExists(body.NoteID, auth.ID)
 	if err != nil {
-		log.Println(err)
+		log.Println("Error checking note exists: ", err)
 		return fiber.ErrInternalServerError
 	}
 	if !noteExists {
@@ -31,9 +31,9 @@ func CreateNoteInvitation(c *fiber.Ctx) error {
 		})
 	}
 
-	targetUserID, err := repository.GetUserIDByEmail(body.Email)
+	targetUserID, err := service.GetUserIDByEmail(body.Email)
 	if err != nil {
-		log.Println(err)
+		log.Println("Error getting user ID by email: ", err)
 		return fiber.ErrInternalServerError
 	}
 	if targetUserID == nil {
@@ -42,9 +42,9 @@ func CreateNoteInvitation(c *fiber.Ctx) error {
 		})
 	}
 
-	inviteExists, err := repository.CheckInviteExists(body.NoteID, *targetUserID)
+	inviteExists, err := service.CheckInviteExists(body.NoteID, *targetUserID)
 	if err != nil {
-		log.Println(err)
+		log.Println("Error checking invite exists: ", err)
 		return fiber.ErrInternalServerError
 	}
 	if inviteExists {
@@ -53,9 +53,9 @@ func CreateNoteInvitation(c *fiber.Ctx) error {
 		})
 	}
 
-	err = repository.CreateNoteInvitation(body.NoteID, auth.ID, *targetUserID, body.Role)
+	err = service.CreateNoteInvitation(body.NoteID, auth.ID, *targetUserID, body.Role)
 	if err != nil {
-		log.Println(err)
+		log.Println("Error creating note invitation: ", err)
 		return fiber.ErrInternalServerError
 	}
 
@@ -66,9 +66,9 @@ func CreateNoteInvitation(c *fiber.Ctx) error {
 
 func GetNoteInvitations(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
-	invitations, err := repository.GetNoteInvitations(auth.ID)
+	invitations, err := service.GetNoteInvitations(auth.ID)
 	if err != nil {
-		log.Println(err)
+		log.Println("Error getting note invitations: ", err)
 		return fiber.ErrInternalServerError
 	}
 	return c.JSON(invitations)
@@ -87,9 +87,9 @@ func RespondNoteInvitation(c *fiber.Ctx) error {
 	}
 
 	if !body.Accept {
-		err := repository.DeclineInvitation(id, auth.ID)
+		err := service.DeclineInvitation(id, auth.ID)
 		if err != nil {
-			log.Println(err)
+			log.Println("Error declining invitation: ", err)
 			return fiber.ErrInternalServerError
 		}
 		return c.JSON(model.Response{
@@ -97,9 +97,9 @@ func RespondNoteInvitation(c *fiber.Ctx) error {
 		})
 	}
 
-	noteInvitation, err := repository.GetNoteInvitationByID(id, auth.ID)
+	noteInvitation, err := service.GetNoteInvitationByID(id, auth.ID)
 	if err != nil {
-		log.Println(err)
+		log.Println("Error getting note invitation by ID: ", err)
 		return fiber.ErrInternalServerError
 	}
 	if noteInvitation == nil {
@@ -108,9 +108,9 @@ func RespondNoteInvitation(c *fiber.Ctx) error {
 		})
 	}
 
-	err = repository.AcceptInvitation(noteInvitation.NoteID, auth.ID, noteInvitation.Role)
+	err = service.AcceptInvitation(noteInvitation.NoteID, auth.ID, noteInvitation.Role)
 	if err != nil {
-		log.Println(err)
+		log.Println("Error accepting invitation: ", err)
 		return fiber.ErrInternalServerError
 	}
 

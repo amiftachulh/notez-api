@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/amiftachulh/notez-api/model"
-	"github.com/amiftachulh/notez-api/repository"
+	"github.com/amiftachulh/notez-api/service"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/gofiber/fiber/v2"
@@ -16,9 +16,9 @@ import (
 func Register(c *fiber.Ctx) error {
 	body := c.Locals("body").(*model.Register)
 
-	exists, err := repository.CheckEmailExists(body.Email)
+	exists, err := service.CheckEmailExists(body.Email)
 	if err != nil {
-		log.Println(err)
+		log.Println("Error checking email exists:", err)
 		return fiber.ErrInternalServerError
 	}
 	if exists {
@@ -35,13 +35,13 @@ func Register(c *fiber.Ctx) error {
 		KeyLength:   32,
 	})
 	if err != nil {
-		log.Println(err)
+		log.Println("Error creating hash:", err)
 		return fiber.ErrInternalServerError
 	}
 
-	err = repository.RegisterUser(body.Email, hash)
+	err = service.RegisterUser(body.Email, hash)
 	if err != nil {
-		log.Println(err)
+		log.Println("Error registering user:", err)
 		return fiber.ErrInternalServerError
 	}
 
@@ -53,20 +53,20 @@ func Register(c *fiber.Ctx) error {
 func Login(c *fiber.Ctx) error {
 	body := c.Locals("body").(*model.Login)
 
-	u, err := repository.GetUserByEmail(body.Email)
+	user, err := service.GetUserByEmail(body.Email)
 	if err != nil {
-		log.Println(err)
+		log.Println("Error getting user by email:", err)
 		return fiber.ErrInternalServerError
 	}
-	if u == nil {
+	if user == nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(model.Response{
 			Message: "Invalid email or password.",
 		})
 	}
 
-	match, err := argon2id.ComparePasswordAndHash(body.Password, u.Password)
+	match, err := argon2id.ComparePasswordAndHash(body.Password, user.Password)
 	if err != nil {
-		log.Println(err)
+		log.Println("Error comparing password and hash:", err)
 		return fiber.ErrInternalServerError
 	}
 	if !match {
@@ -79,10 +79,10 @@ func Login(c *fiber.Ctx) error {
 	rand.Read(bytes)
 	sessionID := base64.RawURLEncoding.EncodeToString(bytes)
 	expiresAt := time.Now().Add(7 * 24 * time.Hour).Truncate(time.Microsecond)
-	u.ExpiresAt = expiresAt
+	user.ExpiresAt = expiresAt
 
-	if err = repository.CreateSession(sessionID, u.ID, expiresAt); err != nil {
-		log.Println(err)
+	if err = service.CreateSession(sessionID, user.ID, expiresAt); err != nil {
+		log.Println("Error creating session:", err)
 		return fiber.ErrInternalServerError
 	}
 
@@ -94,7 +94,7 @@ func Login(c *fiber.Ctx) error {
 	cookie.Secure = true
 	c.Cookie(cookie)
 
-	return c.JSON(u)
+	return c.JSON(user)
 }
 
 func Logout(c *fiber.Ctx) error {
@@ -103,9 +103,9 @@ func Logout(c *fiber.Ctx) error {
 		return fiber.ErrUnauthorized
 	}
 
-	result, err := repository.DeleteSession(sessionID)
+	result, err := service.DeleteSession(sessionID)
 	if err != nil {
-		log.Println(err)
+		log.Println("Error deleting session:", err)
 		return fiber.ErrInternalServerError
 	}
 	if !result {
@@ -120,7 +120,9 @@ func Logout(c *fiber.Ctx) error {
 	cookie.Secure = true
 	c.Cookie(cookie)
 
-	return c.SendStatus(fiber.StatusNoContent)
+	return c.JSON(model.Response{
+		Message: "Logout success.",
+	})
 }
 
 func CheckAuth(c *fiber.Ctx) error {
@@ -129,11 +131,11 @@ func CheckAuth(c *fiber.Ctx) error {
 		return fiber.ErrUnauthorized
 	}
 
-	u, err := repository.GetUserBySession(sessionID)
+	user, err := service.GetUserBySession(sessionID)
 	if err != nil {
-		log.Println(err)
+		log.Println("Error checking auth:", err)
 		return fiber.ErrInternalServerError
 	}
 
-	return c.JSON(u)
+	return c.JSON(user)
 }
