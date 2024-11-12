@@ -2,10 +2,15 @@ package config
 
 import (
 	"log"
-
-	"github.com/amiftachulh/notez-api/db"
+	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
+)
+
+var (
+	DatabaseURL    string
+	AllowedOrigins map[string]struct{}
 )
 
 func Setup() {
@@ -13,5 +18,10 @@ func Setup() {
 	if err != nil {
 		log.Fatalln("Error loading .env file")
 	}
-	db.Setup()
+
+	DatabaseURL = os.Getenv("DATABASE_URL")
+	AllowedOrigins = make(map[string]struct{})
+	for _, origin := range strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",") {
+		AllowedOrigins[origin] = struct{}{}
+	}
 }
