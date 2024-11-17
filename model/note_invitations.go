@@ -36,12 +36,17 @@ type NoteInvitation struct {
 	Role   string    `json:"role"`
 }
 
+type noteWithoutUserID struct {
+	ID    uuid.UUID `json:"id"`
+	Title string    `json:"title"`
+}
+
 type NoteInvitationResponse struct {
-	ID        uuid.UUID `json:"id"`
-	Note      Note      `json:"note"`
-	Inviter   User      `json:"inviter"`
-	Role      string    `json:"role"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        uuid.UUID         `json:"id"`
+	Note      noteWithoutUserID `json:"note"`
+	Inviter   User              `json:"inviter"`
+	Role      string            `json:"role"`
+	CreatedAt time.Time         `json:"created_at"`
 }
 
 type RespondNoteInvitation struct {

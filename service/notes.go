@@ -21,20 +21,14 @@ func CreateNote(title string, content *string, userID uuid.UUID) error {
 	return err
 }
 
-func GetNotes(userID uuid.UUID) ([]model.Note, error) {
-	notes := []model.Note{}
+func GetNotes(userID uuid.UUID) ([]model.NoteResponse, error) {
+	notes := []model.NoteResponse{}
 	query := `
-		SELECT n.id, n.title,
-			CASE
-				WHEN length(n.content) > 100 THEN
-					LEFT(n.content, 100 - POSITION(' ' IN REVERSE(LEFT(n.content, 100)))) || '...'
-				ELSE n.content
-			END as content,
-			n.created_at,
-			n.updated_at
+		SELECT n.id, n.user_id, n.title, nu.role, n.created_at, n.updated_at
 		FROM notes n
 		LEFT JOIN notes_users nu ON n.id = nu.note_id AND nu.user_id = $1
 		WHERE n.user_id = $1 OR nu.user_id = $1
+		ORDER BY n.updated_at DESC
 		LIMIT 10
 	`
 	rows, err := db.DB.Query(query, userID)
@@ -43,8 +37,8 @@ func GetNotes(userID uuid.UUID) ([]model.Note, error) {
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var n model.Note
-		err := rows.Scan(&n.ID, &n.Title, &n.Content, &n.CreatedAt, &n.UpdatedAt)
+		var n model.NoteResponse
+		err := rows.Scan(&n.ID, &n.UserID, &n.Title, &n.Role, &n.CreatedAt, &n.UpdatedAt)
 		if err != nil {
 			log.Println(err)
 		}
@@ -56,17 +50,17 @@ func GetNotes(userID uuid.UUID) ([]model.Note, error) {
 	return notes, nil
 }
 
-func GetNoteByID(noteID uuid.UUID, userID uuid.UUID) (*model.Note, error) {
-	var n model.Note
+func GetNoteByID(noteID uuid.UUID, userID uuid.UUID) (*model.NoteResponse, error) {
+	var n model.NoteResponse
 	query := `
-		SELECT n.id, n.title, n.content, n.created_at, n.updated_at
+		SELECT n.id, n.title, n.content, nu.role, n.created_at, n.updated_at
 		FROM notes n
 		LEFT JOIN notes_users nu ON n.id = nu.note_id AND nu.user_id = $2
-		WHERE n.id = $1 AND (user_id = $2 OR nu.user_id = $2)
+		WHERE n.id = $1 AND (n.user_id = $2 OR nu.user_id = $2)
 	`
 	err := db.DB.
 		QueryRow(query, noteID, userID).
-		Scan(&n.ID, &n.Title, &n.Content, &n.CreatedAt, &n.UpdatedAt)
+		Scan(&n.ID, &n.Title, &n.Content, &n.Role, &n.CreatedAt, &n.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -85,12 +79,22 @@ func CheckNoteExists(id uuid.UUID, userID uuid.UUID) (bool, error) {
 
 func UpdateNoteByID(body *model.NoteInput, noteID uuid.UUID, userID uuid.UUID) (bool, error) {
 	query := `
-		UPDATE notes n
+		WITH notes_to_update AS (
+			SELECT n.id
+			FROM notes n
+			LEFT JOIN notes_users nu ON nu.note_id = n.id
+			WHERE n.id = $3
+				AND (
+					n.user_id = $4
+					OR (
+					    nu.user_id = $4
+						AND nu.role = 'editor'
+					)
+				)
+		)
+		UPDATE notes
 		SET title = $1, content = $2
-		FROM notes_users nu
-		WHERE n.id = $3
-			AND (n.user_id = $4 OR (nu.note_id = $3 AND nu.user_id = $4 AND nu.role = 'editor'))
-			AND n.id = nu.note_id
+		WHERE id IN (SELECT id FROM notes_to_update)
 	`
 	result, err := db.DB.Exec(query, body.Title, body.Content, noteID, userID)
 	if err != nil {

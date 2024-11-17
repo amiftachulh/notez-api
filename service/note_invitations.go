@@ -10,14 +10,33 @@ import (
 	"github.com/google/uuid"
 )
 
+func CheckUserInNote(noteID uuid.UUID, email string) (bool, error) {
+	var exists bool
+	query := `
+		SELECT EXISTS(
+			SELECT 1
+			FROM notes_users nu
+			JOIN users u ON nu.user_id = u.id
+			WHERE nu.note_id = $1 AND u.email = $2
+		)
+	`
+	err := db.DB.QueryRow(query, noteID, email).Scan(&exists)
+	return exists, err
+}
+
 func CheckInviteExists(noteID uuid.UUID, targetUserID uuid.UUID) (bool, error) {
 	var exists bool
-	query := "SELECT EXISTS(SELECT 1 FROM note_invitations WHERE note_id = $1 AND target_user_id = $2)"
+	query := "SELECT EXISTS(SELECT 1 FROM note_invitations WHERE note_id = $1 AND user_id = $2)"
 	err := db.DB.QueryRow(query, noteID, targetUserID).Scan(&exists)
 	return exists, err
 }
 
-func CreateNoteInvitation(noteID uuid.UUID, targetUserID uuid.UUID, inviterID uuid.UUID, role string) error {
+func CreateNoteInvitation(
+	noteID uuid.UUID,
+	targetUserID uuid.UUID,
+	inviterID uuid.UUID,
+	role string,
+) error {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return err
@@ -65,10 +84,13 @@ func GetNoteInvitations(userID uuid.UUID) ([]model.NoteInvitationResponse, error
 	return invitations, nil
 }
 
-func GetNoteInvitationByID(invitationID uuid.UUID, userID uuid.UUID) (*model.NoteInvitation, error) {
+func GetNoteInvitationByID(
+	invitationID uuid.UUID,
+	userID uuid.UUID,
+) (*model.NoteInvitation, error) {
 	var ni model.NoteInvitation
-	query := "SELECT note_id, role FROM note_invitations WHERE id = $1 AND user_id = $2"
-	if err := db.DB.QueryRow(query, invitationID, userID).Scan(&ni.ID, &ni.Role); err != nil {
+	query := "SELECT id, note_id, role FROM note_invitations WHERE id = $1 AND user_id = $2"
+	if err := db.DB.QueryRow(query, invitationID, userID).Scan(&ni.ID, &ni.NoteID, &ni.Role); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
