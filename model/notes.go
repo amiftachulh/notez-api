@@ -41,6 +41,41 @@ func (c NoteInput) Validate() error {
 	)
 }
 
+type NoteQuery struct {
+	Query    string `query:"q"         json:"q"`
+	Page     int    `query:"page"      json:"page"`
+	PageSize int    `query:"page_size" json:"page_size"`
+	Sort     string `query:"sort"      json:"sort"`
+	Order    string `query:"order"     json:"order"`
+}
+
+func (q NoteQuery) Validate() error {
+	return validation.ValidateStruct(
+		&q,
+		validation.Field(
+			&q.Page,
+			validation.Min(1).Error("Page must be greater than 0."),
+		),
+		validation.Field(
+			&q.PageSize,
+			validation.Min(1).Error("Page size must be greater than 0."),
+			validation.Max(100).Error("Page size must be less than 100."),
+		),
+		validation.Field(
+			&q.Sort,
+			validation.When(
+				q.Sort != "",
+				validation.In("id", "title", "created_at", "updated_at").
+					Error("Invalid sort field. Allowed fields: 'title', 'created_at', 'updated_at'."),
+			),
+		),
+		validation.Field(
+			&q.Order,
+			validation.In("asc", "desc").Error("Invalid order. Allowed values: 'asc', 'desc'."),
+		),
+	)
+}
+
 type NoteResponse struct {
 	ID        uuid.UUID `json:"id"`
 	UserID    uuid.UUID `json:"user_id"`

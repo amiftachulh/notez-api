@@ -6,6 +6,7 @@ import (
 
 	"github.com/amiftachulh/notez-api/model"
 	"github.com/amiftachulh/notez-api/service"
+	"github.com/amiftachulh/notez-api/util"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -13,7 +14,12 @@ import (
 
 func CreateNoteInvitation(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
-	body := c.Locals("body").(*model.CreateNoteInvitation)
+
+	body := new(model.CreateNoteInvitation)
+	if err := c.BodyParser(body); err != nil {
+		res := util.HandleJSONError(err)
+		return c.Status(fiber.StatusBadRequest).JSON(res)
+	}
 
 	if auth.Email == body.Email {
 		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
@@ -88,14 +94,19 @@ func GetNoteInvitations(c *fiber.Ctx) error {
 
 func RespondNoteInvitation(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
-	body := c.Locals("body").(*model.RespondNoteInvitation)
-	invitationID := c.Params("id")
 
+	invitationID := c.Params("id")
 	id, err := uuid.Parse(invitationID)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
 			Message: "Invalid invitation ID.",
 		})
+	}
+
+	body := new(model.RespondNoteInvitation)
+	if err := c.BodyParser(body); err != nil {
+		res := util.HandleJSONError(err)
+		return c.Status(fiber.StatusBadRequest).JSON(res)
 	}
 
 	if !body.Accept {

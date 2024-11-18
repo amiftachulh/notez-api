@@ -8,13 +8,18 @@ import (
 
 	"github.com/amiftachulh/notez-api/model"
 	"github.com/amiftachulh/notez-api/service"
+	"github.com/amiftachulh/notez-api/util"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/gofiber/fiber/v2"
 )
 
 func Register(c *fiber.Ctx) error {
-	body := c.Locals("body").(*model.Register)
+	body := new(model.Register)
+	if err := c.BodyParser(body); err != nil {
+		res := util.HandleJSONError(err)
+		return c.Status(fiber.StatusBadRequest).JSON(res)
+	}
 
 	exists, err := service.CheckEmailExists(body.Email)
 	if err != nil {
@@ -51,7 +56,11 @@ func Register(c *fiber.Ctx) error {
 }
 
 func Login(c *fiber.Ctx) error {
-	body := c.Locals("body").(*model.Login)
+	body := new(model.Login)
+	if err := c.BodyParser(body); err != nil {
+		res := util.HandleJSONError(err)
+		return c.Status(fiber.StatusBadRequest).JSON(res)
+	}
 
 	user, err := service.GetUserByEmail(body.Email)
 	if err != nil {

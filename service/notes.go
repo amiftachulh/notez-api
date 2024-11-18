@@ -3,11 +3,12 @@ package service
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/amiftachulh/notez-api/db"
 	"github.com/amiftachulh/notez-api/model"
-
 	"github.com/google/uuid"
 )
 
@@ -21,19 +22,40 @@ func CreateNote(title string, content *string, userID uuid.UUID) error {
 	return err
 }
 
-func GetNotes(userID uuid.UUID) ([]model.NoteResponse, error) {
+func GetNotes(userID uuid.UUID, opts *model.NoteQuery) ([]model.NoteResponse, int, error) {
 	notes := []model.NoteResponse{}
-	query := `
-		SELECT n.id, n.user_id, n.title, nu.role, n.created_at, n.updated_at
-		FROM notes n
-		LEFT JOIN notes_users nu ON n.id = nu.note_id AND nu.user_id = $1
-		WHERE n.user_id = $1 OR nu.user_id = $1
-		ORDER BY n.updated_at DESC
-		LIMIT 10
-	`
-	rows, err := db.DB.Query(query, userID)
+
+	queryBuilder := strings.Builder{}
+	countQueryBuilder := strings.Builder{}
+
+	queryBuilder.WriteString(
+		"SELECT n.id, n.user_id, n.title, nu.role, n.created_at, n.updated_at FROM notes n LEFT JOIN notes_users nu ON n.id = nu.note_id AND nu.user_id = $1 WHERE (n.user_id = $1 OR nu.user_id = $1)",
+	)
+	countQueryBuilder.WriteString(
+		"SELECT COUNT(*) FROM notes n LEFT JOIN notes_users nu ON n.id = nu.note_id AND nu.user_id = $1 WHERE (n.user_id = $1 OR nu.user_id = $1)",
+	)
+	params := []interface{}{userID}
+
+	if opts.Query != "" {
+		queryBuilder.WriteString(fmt.Sprintf(" AND n.title ILIKE $%d", len(params)+1))
+		countQueryBuilder.WriteString(fmt.Sprintf(" AND n.title ILIKE $%d", len(params)+1))
+		params = append(params, "%"+opts.Query+"%")
+	}
+
+	queryBuilder.WriteString(
+		fmt.Sprintf(
+			" ORDER BY n.%s %s LIMIT %d OFFSET %d",
+			opts.Sort,
+			opts.Order,
+			opts.PageSize,
+			(opts.Page-1)*opts.PageSize,
+		),
+	)
+
+	query := queryBuilder.String()
+	rows, err := db.DB.Query(query, params...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -45,9 +67,16 @@ func GetNotes(userID uuid.UUID) ([]model.NoteResponse, error) {
 		notes = append(notes, n)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return notes, nil
+
+	var total int
+	countQuery := countQueryBuilder.String()
+	if err = db.DB.QueryRow(countQuery, params...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	return notes, total, nil
 }
 
 func GetNoteByID(noteID uuid.UUID, userID uuid.UUID) (*model.NoteResponse, error) {
