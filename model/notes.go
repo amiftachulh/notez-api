@@ -85,3 +85,22 @@ type NoteResponse struct {
 	CreatedAt string    `json:"created_at"`
 	UpdatedAt string    `json:"updated_at"`
 }
+
+type NoteMember struct {
+	ID        uuid.UUID `json:"id"`
+	Email     string    `json:"email"`
+	Name      *string   `json:"name"`
+	Role      string    `json:"role,omitempty"`
+	CreatedAt string    `json:"created_at,omitempty"`
+}
+
+type NoteDetail struct {
+	ID        uuid.UUID    `json:"id"`
+	Title     string       `json:"title"`
+	Content   *string      `json:"content"`
+	Role      *string      `json:"role"`
+	Owner     NoteMember   `json:"owner"`
+	Members   []NoteMember `json:"members"`
+	CreatedAt string       `json:"created_at"`
+	UpdatedAt string       `json:"updated_at"`
+}

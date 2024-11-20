@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS notes_users (
   note_id UUID NOT NULL REFERENCES notes (id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   role note_role NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (note_id, user_id)
 );
 

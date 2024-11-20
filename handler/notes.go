@@ -87,7 +87,7 @@ func GetNoteByID(c *fiber.Ctx) error {
 	return c.JSON(note)
 }
 
-func UpdateNote(c *fiber.Ctx) error {
+func UpdateNoteByID(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
 
 	noteID := c.Params("id")
@@ -120,7 +120,7 @@ func UpdateNote(c *fiber.Ctx) error {
 	})
 }
 
-func DeleteNote(c *fiber.Ctx) error {
+func DeleteNoteByID(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
 
 	noteID := c.Params("id")

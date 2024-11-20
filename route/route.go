@@ -22,8 +22,8 @@ func Setup(app *fiber.App) {
 	notes.Post("/", handler.CreateNote)
 	notes.Get("/", handler.GetNotes)
 	notes.Get("/:id", handler.GetNoteByID)
-	notes.Put("/:id", handler.UpdateNote)
-	notes.Delete("/:id", handler.DeleteNote)
+	notes.Put("/:id", handler.UpdateNoteByID)
+	notes.Delete("/:id", handler.DeleteNoteByID)
 
 	noteInvitation := protected.Group("/note-invitations")
 	noteInvitation.Post("/", handler.CreateNoteInvitation)

@@ -79,27 +79,53 @@ func GetNotes(userID uuid.UUID, opts *model.NoteQuery) ([]model.NoteResponse, in
 	return notes, total, nil
 }
 
-func GetNoteByID(noteID uuid.UUID, userID uuid.UUID) (*model.NoteResponse, error) {
-	var n model.NoteResponse
+func GetNoteByID(noteID, userID uuid.UUID) (*model.NoteDetail, error) {
+	var n model.NoteDetail
 	query := `
-		SELECT n.id, n.title, n.content, nu.role, n.created_at, n.updated_at
+		SELECT n.id, n.title, n.content, nu.role, u.id AS owner_id, u.email, u.name, n.created_at, n.updated_at
 		FROM notes n
+		JOIN users u ON n.user_id = u.id
 		LEFT JOIN notes_users nu ON n.id = nu.note_id AND nu.user_id = $2
 		WHERE n.id = $1 AND (n.user_id = $2 OR nu.user_id = $2)
 	`
 	err := db.DB.
 		QueryRow(query, noteID, userID).
-		Scan(&n.ID, &n.Title, &n.Content, &n.Role, &n.CreatedAt, &n.UpdatedAt)
+		Scan(&n.ID, &n.Title, &n.Content, &n.Role, &n.Owner.ID, &n.Owner.Email, &n.Owner.Name, &n.CreatedAt, &n.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, err
 	}
+
+	members := []model.NoteMember{}
+	query = `
+		SELECT u.id, u.email, u.name, nu.role, nu.created_at
+		FROM notes_users nu
+		JOIN users u ON nu.user_id = u.id
+		WHERE nu.note_id = $1
+	`
+	rows, err := db.DB.Query(query, noteID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var m model.NoteMember
+		if err := rows.Scan(&m.ID, &m.Email, &m.Name, &m.Role, &m.CreatedAt); err != nil {
+			log.Println(err)
+		}
+		members = append(members, m)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	n.Members = members
 	return &n, nil
 }
 
-func CheckNoteExists(id uuid.UUID, userID uuid.UUID) (bool, error) {
+func CheckNoteExists(id, userID uuid.UUID) (bool, error) {
 	var exists bool
 	query := "SELECT EXISTS(SELECT 1 FROM notes WHERE id = $1 AND user_id = $2)"
 	err := db.DB.QueryRow(query, id, userID).Scan(&exists)
@@ -139,7 +165,7 @@ func UpdateNoteByID(body *model.NoteInput, noteID uuid.UUID, userID uuid.UUID) (
 	return true, nil
 }
 
-func DeleteNoteByID(id uuid.UUID, userID uuid.UUID) (bool, error) {
+func DeleteNoteByID(id, userID uuid.UUID) (bool, error) {
 	query := "DELETE FROM notes WHERE id = $1 AND user_id = $2"
 	result, err := db.DB.Exec(query, id, userID)
 	if err != nil {
