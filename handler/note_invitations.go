@@ -6,7 +6,6 @@ import (
 
 	"github.com/amiftachulh/notez-api/model"
 	"github.com/amiftachulh/notez-api/service"
-	"github.com/amiftachulh/notez-api/util"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -16,9 +15,13 @@ func CreateNoteInvitation(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
 
 	body := new(model.CreateNoteInvitation)
-	if err := c.BodyParser(body); err != nil {
-		res := util.HandleJSONError(err)
-		return c.Status(fiber.StatusBadRequest).JSON(res)
+	c.BodyParser(body)
+
+	if err := body.Validate(); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
+			Message: "Validation error.",
+			Error:   err,
+		})
 	}
 
 	if auth.Email == body.Email {
@@ -105,8 +108,12 @@ func RespondNoteInvitation(c *fiber.Ctx) error {
 
 	body := new(model.RespondNoteInvitation)
 	if err := c.BodyParser(body); err != nil {
-		res := util.HandleJSONError(err)
-		return c.Status(fiber.StatusBadRequest).JSON(res)
+		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
+			Message: "Validation error.",
+			Error: map[string]string{
+				"accept": "Accept must be a boolean.",
+			},
+		})
 	}
 
 	if !body.Accept {

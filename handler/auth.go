@@ -8,7 +8,6 @@ import (
 
 	"github.com/amiftachulh/notez-api/model"
 	"github.com/amiftachulh/notez-api/service"
-	"github.com/amiftachulh/notez-api/util"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/gofiber/fiber/v2"
@@ -16,9 +15,13 @@ import (
 
 func Register(c *fiber.Ctx) error {
 	body := new(model.Register)
-	if err := c.BodyParser(body); err != nil {
-		res := util.HandleJSONError(err)
-		return c.Status(fiber.StatusBadRequest).JSON(res)
+	c.BodyParser(body)
+
+	if err := body.Validate(); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
+			Message: "Validation error.",
+			Error:   err,
+		})
 	}
 
 	exists, err := service.CheckEmailExists(body.Email)
@@ -57,9 +60,13 @@ func Register(c *fiber.Ctx) error {
 
 func Login(c *fiber.Ctx) error {
 	body := new(model.Login)
-	if err := c.BodyParser(body); err != nil {
-		res := util.HandleJSONError(err)
-		return c.Status(fiber.StatusBadRequest).JSON(res)
+	c.BodyParser(body)
+
+	if err := body.Validate(); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
+			Message: "Validation error.",
+			Error:   err,
+		})
 	}
 
 	user, err := service.GetUserByEmail(body.Email)

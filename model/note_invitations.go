@@ -24,7 +24,7 @@ func (i CreateNoteInvitation) Validate() error {
 		),
 		validation.Field(
 			&i.Role,
-			validation.In("editor", "viewer").Error("Role must be either editor or viewer."),
+			validation.In("editor", "viewer").Error("Role must be either 'editor' or 'viewer'."),
 		),
 	)
 }
