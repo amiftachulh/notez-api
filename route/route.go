@@ -18,6 +18,11 @@ func Setup(app *fiber.App) {
 
 	protected := v1.Group("/").Use(middleware.Authenticate)
 
+	profile := protected.Group("/profile")
+	profile.Patch("/", handler.UpdateUserInfo)
+	profile.Patch("/email", handler.UpdateUserEmail)
+	profile.Patch("/password", handler.UpdateUserPassword)
+
 	notes := protected.Group("/notes")
 	notes.Post("/", handler.CreateNote)
 	notes.Get("/", handler.GetNotes)

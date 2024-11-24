@@ -35,19 +35,13 @@ func Register(c *fiber.Ctx) error {
 		})
 	}
 
-	hash, err := argon2id.CreateHash(body.Password, &argon2id.Params{
-		Memory:      19456,
-		Iterations:  2,
-		Parallelism: 1,
-		SaltLength:  16,
-		KeyLength:   32,
-	})
+	hash, err := hashPassword(body.Password)
 	if err != nil {
 		log.Println("Error creating hash:", err)
 		return fiber.ErrInternalServerError
 	}
 
-	err = service.RegisterUser(body.Email, hash)
+	err = service.CreateUser(body.Email, hash)
 	if err != nil {
 		log.Println("Error registering user:", err)
 		return fiber.ErrInternalServerError

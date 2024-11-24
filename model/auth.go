@@ -31,7 +31,7 @@ func (r Register) Validate() error {
 		validation.Field(
 			&r.Email,
 			validation.Required.Error("Email is required."),
-			is.Email.Error("Email is invalid."),
+			is.Email.Error("Email is not valid."),
 		),
 		validation.Field(
 			&r.Password,

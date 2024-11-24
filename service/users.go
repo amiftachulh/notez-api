@@ -3,7 +3,6 @@ package service
 import (
 	"database/sql"
 	"errors"
-	"time"
 
 	"github.com/amiftachulh/notez-api/db"
 	"github.com/amiftachulh/notez-api/model"
@@ -18,7 +17,7 @@ func CheckEmailExists(email string) (bool, error) {
 	return exists, err
 }
 
-func RegisterUser(email, password string) error {
+func CreateUser(email, password string) error {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return err
@@ -28,9 +27,24 @@ func RegisterUser(email, password string) error {
 	return err
 }
 
+func GetUserByID(userID uuid.UUID) (*model.User, error) {
+	var u model.User
+	query := "SELECT id, name, email, password, role, created_at, updated_at FROM users WHERE id = $1"
+	err := db.DB.
+		QueryRow(query, userID).
+		Scan(&u.ID, &u.Name, &u.Email, &u.Password, &u.Role, &u.CreatedAt, &u.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &u, nil
+}
+
 func GetUserByEmail(email string) (*model.AuthUser, error) {
 	var u model.AuthUser
-	query := "SELECT * FROM users WHERE email = $1"
+	query := "SELECT id, name, email, password, role, created_at, updated_at FROM users WHERE email = $1"
 	if err := db.DB.
 		QueryRow(query, email).
 		Scan(&u.ID, &u.Name, &u.Email, &u.Password, &u.Role, &u.CreatedAt, &u.UpdatedAt); err != nil {
@@ -54,37 +68,41 @@ func GetUserIDByEmail(email string) (*uuid.UUID, error) {
 	return &id, nil
 }
 
-func CreateSession(sessionID string, userID uuid.UUID, expiresAt time.Time) error {
-	query := "INSERT INTO sessions (id, user_id, expires_at) VALUES ($1, $2, $3)"
-	if _, err := db.DB.Exec(query, sessionID, userID, expiresAt); err != nil {
-		return err
+func UpdateUserInfo(userID uuid.UUID, body *model.UpdateUserInfo) (bool, error) {
+	query := "UPDATE users SET name = $1 WHERE id = $2"
+	result, err := db.DB.Exec(query, body.Name, userID)
+	if err != nil {
+		return false, err
 	}
-	return nil
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	if rowsAffected == 0 {
+		return false, nil
+	}
+	return true, nil
 }
 
-func GetUserBySession(sessionID string) (*model.AuthUser, error) {
-	var u model.AuthUser
-	query := `
-		SELECT u.id, u.name, u.email, u.role, u.created_at, u.updated_at, s.expires_at
-		FROM sessions s
-		JOIN users u
-		ON s.user_id = u.id
-		WHERE s.id = $1 AND s.expires_at > now()
-	`
-	if err := db.DB.
-		QueryRow(query, sessionID).
-		Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.CreatedAt, &u.UpdatedAt, &u.ExpiresAt); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, err
+func UpdateUserEmail(userID uuid.UUID, email string) (bool, error) {
+	query := "UPDATE users SET email = $1 WHERE id = $2"
+	result, err := db.DB.Exec(query, email, userID)
+	if err != nil {
+		return false, err
 	}
-	return &u, nil
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	if rowsAffected == 0 {
+		return false, nil
+	}
+	return true, nil
 }
 
-func DeleteSession(sessionID string) (bool, error) {
-	query := "DELETE FROM sessions WHERE id = $1"
-	result, err := db.DB.Exec(query, sessionID)
+func UpdateUserPassword(userID uuid.UUID, hashedPassword string) (bool, error) {
+	query := "UPDATE users SET password = $1 WHERE id = $2"
+	result, err := db.DB.Exec(query, hashedPassword, userID)
 	if err != nil {
 		return false, err
 	}
