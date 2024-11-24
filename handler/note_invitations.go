@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
@@ -15,17 +17,24 @@ func CreateNoteInvitation(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
 
 	body := new(model.CreateNoteInvitation)
-	c.BodyParser(body)
+	if err := c.BodyParser(body); err != nil {
+		var syntaxError *json.SyntaxError
+		if errors.As(err, &syntaxError) {
+			return c.Status(fiber.StatusBadRequest).JSON(model.Response{
+				Message: invalidJSON,
+			})
+		}
+	}
 
 	if err := body.Validate(); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-			Message: "Validation error.",
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
+			Message: validationErr,
 			Error:   err,
 		})
 	}
 
 	if auth.Email == body.Email {
-		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
 			Message: "You can't invite yourself.",
 		})
 	}
@@ -108,8 +117,8 @@ func RespondNoteInvitation(c *fiber.Ctx) error {
 
 	body := new(model.RespondNoteInvitation)
 	if err := c.BodyParser(body); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-			Message: "Validation error.",
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
+			Message: validationErr,
 			Error: map[string]string{
 				"accept": "Accept must be a boolean.",
 			},

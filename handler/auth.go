@@ -3,6 +3,8 @@ package handler
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
+	"errors"
 	"log"
 	"time"
 
@@ -15,11 +17,18 @@ import (
 
 func Register(c *fiber.Ctx) error {
 	body := new(model.Register)
-	c.BodyParser(body)
+	if err := c.BodyParser(body); err != nil {
+		var syntaxError *json.SyntaxError
+		if errors.As(err, &syntaxError) {
+			return c.Status(fiber.StatusBadRequest).JSON(model.Response{
+				Message: invalidJSON,
+			})
+		}
+	}
 
 	if err := body.Validate(); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-			Message: "Validation error.",
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
+			Message: validationErr,
 			Error:   err,
 		})
 	}
@@ -31,7 +40,7 @@ func Register(c *fiber.Ctx) error {
 	}
 	if exists {
 		return c.Status(fiber.StatusConflict).JSON(model.Response{
-			Message: "Email already used.",
+			Message: emailUsed,
 		})
 	}
 
@@ -54,11 +63,18 @@ func Register(c *fiber.Ctx) error {
 
 func Login(c *fiber.Ctx) error {
 	body := new(model.Login)
-	c.BodyParser(body)
+	if err := c.BodyParser(body); err != nil {
+		var syntaxError *json.SyntaxError
+		if errors.As(err, &syntaxError) {
+			return c.Status(fiber.StatusBadRequest).JSON(model.Response{
+				Message: invalidJSON,
+			})
+		}
+	}
 
 	if err := body.Validate(); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-			Message: "Validation error.",
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
+			Message: validationErr,
 			Error:   err,
 		})
 	}
@@ -70,7 +86,7 @@ func Login(c *fiber.Ctx) error {
 	}
 	if user == nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(model.Response{
-			Message: "Invalid email or password.",
+			Message: invalidEmailPassword,
 		})
 	}
 
@@ -81,7 +97,7 @@ func Login(c *fiber.Ctx) error {
 	}
 	if !match {
 		return c.Status(fiber.StatusUnauthorized).JSON(model.Response{
-			Message: "Invalid email or password.",
+			Message: invalidEmailPassword,
 		})
 	}
 

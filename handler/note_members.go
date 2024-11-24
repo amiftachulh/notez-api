@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"encoding/json"
+	"errors"
 	"log"
 
 	"github.com/amiftachulh/notez-api/model"
@@ -40,11 +42,18 @@ func UpdateNoteMemberRole(c *fiber.Ctx) error {
 	}
 
 	body := new(model.UpdateNoteMemberRole)
-	c.BodyParser(body)
+	if err := c.BodyParser(body); err != nil {
+		var syntaxError *json.SyntaxError
+		if errors.As(err, &syntaxError) {
+			return c.Status(fiber.StatusBadRequest).JSON(model.Response{
+				Message: invalidJSON,
+			})
+		}
+	}
 
 	if err := body.Validate(); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-			Message: "Validation error.",
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
+			Message: validationErr,
 			Error:   err,
 		})
 	}
