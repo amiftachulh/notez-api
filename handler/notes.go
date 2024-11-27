@@ -62,7 +62,6 @@ func GetNotes(c *fiber.Ctx) error {
 
 	notes, total, err := service.GetNotes(auth.ID, query)
 	if err != nil {
-		log.Println("Error getting notes:", err)
 		return fiber.ErrInternalServerError
 	}
 

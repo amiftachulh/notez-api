@@ -47,6 +47,7 @@ type NoteQuery struct {
 	PageSize int    `query:"page_size" json:"page_size"`
 	Sort     string `query:"sort"      json:"sort"`
 	Order    string `query:"order"     json:"order"`
+	Role     string `query:"role" json:"role"`
 }
 
 func (q NoteQuery) Validate() error {
@@ -63,15 +64,17 @@ func (q NoteQuery) Validate() error {
 		),
 		validation.Field(
 			&q.Sort,
-			validation.When(
-				q.Sort != "",
-				validation.In("id", "title", "created_at", "updated_at").
-					Error("Invalid sort field. Allowed fields: 'title', 'created_at', 'updated_at'."),
-			),
+			validation.In("id", "title", "created_at", "updated_at").
+				Error("Invalid sort field. Allowed fields: 'title', 'created_at', 'updated_at'."),
 		),
 		validation.Field(
 			&q.Order,
 			validation.In("asc", "desc").Error("Invalid order. Allowed values: 'asc', 'desc'."),
+		),
+		validation.Field(
+			&q.Role,
+			validation.In("owner", "editor", "viewer").
+				Error("Invalid role. Allowed values: 'owner', 'editor', 'viewer'."),
 		),
 	)
 }

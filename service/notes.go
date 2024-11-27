@@ -37,9 +37,24 @@ func GetNotes(userID uuid.UUID, opts *model.NoteQuery) ([]model.NoteResponse, in
 	params := []interface{}{userID}
 
 	if opts.Query != "" {
-		queryBuilder.WriteString(fmt.Sprintf(" AND n.title ILIKE $%d", len(params)+1))
-		countQueryBuilder.WriteString(fmt.Sprintf(" AND n.title ILIKE $%d", len(params)+1))
+		str := fmt.Sprintf(" AND n.title ILIKE $%d", len(params)+1)
+		queryBuilder.WriteString(str)
+		countQueryBuilder.WriteString(str)
 		params = append(params, "%"+opts.Query+"%")
+	}
+
+	if opts.Role != "" {
+		if opts.Role == "owner" {
+			str := fmt.Sprintf(" AND n.user_id = $%d", len(params)+1)
+			queryBuilder.WriteString(str)
+			countQueryBuilder.WriteString(str)
+			params = append(params, userID)
+		} else {
+			str := fmt.Sprintf(" AND nu.role = $%d", len(params)+1)
+			queryBuilder.WriteString(str)
+			countQueryBuilder.WriteString(str)
+			params = append(params, opts.Role)
+		}
 	}
 
 	queryBuilder.WriteString(
@@ -55,6 +70,7 @@ func GetNotes(userID uuid.UUID, opts *model.NoteQuery) ([]model.NoteResponse, in
 	query := queryBuilder.String()
 	rows, err := db.DB.Query(query, params...)
 	if err != nil {
+		log.Println("Error querying notes:", err)
 		return nil, 0, err
 	}
 	defer rows.Close()
@@ -62,17 +78,19 @@ func GetNotes(userID uuid.UUID, opts *model.NoteQuery) ([]model.NoteResponse, in
 		var n model.NoteResponse
 		err := rows.Scan(&n.ID, &n.UserID, &n.Title, &n.Role, &n.CreatedAt, &n.UpdatedAt)
 		if err != nil {
-			log.Println(err)
+			log.Println("Error scanning note:", err)
 		}
 		notes = append(notes, n)
 	}
 	if err = rows.Err(); err != nil {
+		log.Println("Error iterating notes:", err)
 		return nil, 0, err
 	}
 
 	var total int
 	countQuery := countQueryBuilder.String()
 	if err = db.DB.QueryRow(countQuery, params...).Scan(&total); err != nil {
+		log.Println("Error counting notes:", err)
 		return nil, 0, err
 	}
 
