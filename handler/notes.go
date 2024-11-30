@@ -1,36 +1,17 @@
 package handler
 
 import (
-	"encoding/json"
-	"errors"
 	"log"
 
 	"github.com/amiftachulh/notez-api/model"
 	"github.com/amiftachulh/notez-api/service"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 )
 
 func CreateNote(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
-
-	body := new(model.NoteInput)
-	if err := c.BodyParser(body); err != nil {
-		var syntaxError *json.SyntaxError
-		if errors.As(err, &syntaxError) {
-			return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-				Message: invalidJSON,
-			})
-		}
-	}
-
-	if err := body.Validate(); err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
-			Message: validationErr,
-			Error:   err,
-		})
-	}
+	body := c.Locals("body").(*model.NoteInput)
 
 	if err := service.CreateNote(body.Title, body.Content, auth.ID); err != nil {
 		log.Println("Error creating note:", err)
@@ -44,21 +25,7 @@ func CreateNote(c *fiber.Ctx) error {
 
 func GetNotes(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
-
-	query := &model.NoteQuery{
-		Page:     1,
-		PageSize: 10,
-		Sort:     "id",
-		Order:    "asc",
-	}
-	c.QueryParser(query)
-
-	if err := query.Validate(); err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
-			Message: queryValidationErr,
-			Error:   err,
-		})
-	}
+	query := c.Locals("query").(*model.NoteQuery)
 
 	notes, total, err := service.GetNotes(auth.ID, query)
 	if err != nil {
@@ -73,14 +40,7 @@ func GetNotes(c *fiber.Ctx) error {
 
 func GetNoteByID(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
-	noteID := c.Params("id")
-
-	id, err := uuid.Parse(noteID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-			Message: "Invalid note ID.",
-		})
-	}
+	id := c.Locals("params").(*model.NoteParams).ID
 
 	note, err := service.GetNoteByID(id, auth.ID)
 	if err != nil {
@@ -98,31 +58,8 @@ func GetNoteByID(c *fiber.Ctx) error {
 
 func UpdateNoteByID(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
-
-	noteID := c.Params("id")
-	id, err := uuid.Parse(noteID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-			Message: "Invalid note ID.",
-		})
-	}
-
-	body := new(model.NoteInput)
-	if err := c.BodyParser(body); err != nil {
-		var syntaxError *json.SyntaxError
-		if errors.As(err, &syntaxError) {
-			return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-				Message: invalidJSON,
-			})
-		}
-	}
-
-	if err := body.Validate(); err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
-			Message: validationErr,
-			Error:   err,
-		})
-	}
+	id := c.Locals("params").(*model.NoteParams).ID
+	body := c.Locals("body").(*model.NoteInput)
 
 	result, err := service.UpdateNoteByID(body, id, auth.ID)
 	if err != nil {
@@ -142,14 +79,7 @@ func UpdateNoteByID(c *fiber.Ctx) error {
 
 func DeleteNoteByID(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
-
-	noteID := c.Params("id")
-	id, err := uuid.Parse(noteID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-			Message: "Invalid note ID.",
-		})
-	}
+	id := c.Locals("params").(*model.NoteParams).ID
 
 	result, err := service.DeleteNoteByID(id, auth.ID)
 	if err != nil {

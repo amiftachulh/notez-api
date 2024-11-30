@@ -3,8 +3,6 @@ package handler
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
-	"errors"
 	"log"
 	"time"
 
@@ -16,22 +14,7 @@ import (
 )
 
 func Register(c *fiber.Ctx) error {
-	body := new(model.Register)
-	if err := c.BodyParser(body); err != nil {
-		var syntaxError *json.SyntaxError
-		if errors.As(err, &syntaxError) {
-			return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-				Message: invalidJSON,
-			})
-		}
-	}
-
-	if err := body.Validate(); err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
-			Message: validationErr,
-			Error:   err,
-		})
-	}
+	body := c.Locals("body").(*model.Register)
 
 	exists, err := service.CheckEmailExists(body.Email)
 	if err != nil {
@@ -62,22 +45,7 @@ func Register(c *fiber.Ctx) error {
 }
 
 func Login(c *fiber.Ctx) error {
-	body := new(model.Login)
-	if err := c.BodyParser(body); err != nil {
-		var syntaxError *json.SyntaxError
-		if errors.As(err, &syntaxError) {
-			return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-				Message: invalidJSON,
-			})
-		}
-	}
-
-	if err := body.Validate(); err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
-			Message: validationErr,
-			Error:   err,
-		})
-	}
+	body := c.Locals("body").(*model.Login)
 
 	user, err := service.GetUserByEmail(body.Email)
 	if err != nil {

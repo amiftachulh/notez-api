@@ -14,6 +14,10 @@ type CreateNoteInvitation struct {
 	Role   string    `json:"role"`
 }
 
+func (i CreateNoteInvitation) New() interface{} {
+	return &CreateNoteInvitation{}
+}
+
 func (i CreateNoteInvitation) Validate() error {
 	return validation.ValidateStruct(
 		&i,
@@ -27,6 +31,14 @@ func (i CreateNoteInvitation) Validate() error {
 			validation.In("editor", "viewer").Error("Role must be either 'editor' or 'viewer'."),
 		),
 	)
+}
+
+type NoteInvitationParams struct {
+	ID uuid.UUID `param:"id"`
+}
+
+func (p NoteInvitationParams) New() interface{} {
+	return &NoteInvitationParams{}
 }
 
 type NoteInvitation struct {

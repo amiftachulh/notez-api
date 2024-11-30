@@ -1,9 +1,9 @@
 package handler
 
 const (
-	invalidJSON          = "Invalid JSON."
-	validationErr        = "Validation error."
-	queryValidationErr   = "Query validation error."
+	invalidJSON          = "Malformed JSON."
+	validationErr        = "Validation failed."
+	queryValidationErr   = "Query validation failed."
 	invalidEmailPassword = "Invalid email or password."
 	userNotFound         = "User not found."
 	emailUsed            = "Email is already used."

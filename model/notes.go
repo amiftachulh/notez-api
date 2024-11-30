@@ -21,24 +21,36 @@ type NoteInput struct {
 	Content *string `json:"content"`
 }
 
-func (c NoteInput) Validate() error {
+func (n NoteInput) New() interface{} {
+	return &NoteInput{}
+}
+
+func (n NoteInput) Validate() error {
 	return validation.ValidateStruct(
-		&c,
+		&n,
 		validation.Field(
-			&c.Title,
+			&n.Title,
 			validation.Required.Error("Title is required."),
 			validation.RuneLength(1, 300).Error("Title must be less than 300 characters."),
 		),
 		validation.Field(
-			&c.Content,
+			&n.Content,
 			validation.When(
-				c.Content != nil,
+				n.Content != nil,
 				validation.Required.Error("Content must be at least 1 character."),
 				validation.Length(1, NOTE_MAX_CONTENT_BYTES).
 					Error("Content size must be less than 5 MB."),
 			),
 		),
 	)
+}
+
+type NoteParams struct {
+	ID uuid.UUID `param:"id"`
+}
+
+func (p NoteParams) New() interface{} {
+	return &NoteParams{}
 }
 
 type NoteQuery struct {
@@ -48,6 +60,15 @@ type NoteQuery struct {
 	Sort     string `query:"sort"      json:"sort"`
 	Order    string `query:"order"     json:"order"`
 	Role     string `query:"role" json:"role"`
+}
+
+func (q NoteQuery) New() interface{} {
+	return &NoteQuery{
+		Page:     1,
+		PageSize: 10,
+		Sort:     "id",
+		Order:    "asc",
+	}
 }
 
 func (q NoteQuery) Validate() error {

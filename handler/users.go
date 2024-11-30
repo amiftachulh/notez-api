@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
-	"errors"
 	"log"
 
 	"github.com/alexedwards/argon2id"
@@ -13,23 +11,7 @@ import (
 
 func UpdateUserInfo(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
-
-	body := new(model.UpdateUserInfo)
-	if err := c.BodyParser(body); err != nil {
-		var syntaxErr *json.SyntaxError
-		if errors.As(err, &syntaxErr) {
-			return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-				Message: invalidJSON,
-			})
-		}
-	}
-
-	if err := body.Validate(); err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
-			Message: validationErr,
-			Error:   err,
-		})
-	}
+	body := c.Locals("body").(*model.UpdateUserInfo)
 
 	result, err := service.UpdateUserInfo(auth.ID, body)
 	if err != nil {
@@ -49,23 +31,7 @@ func UpdateUserInfo(c *fiber.Ctx) error {
 
 func UpdateUserEmail(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
-
-	body := new(model.UpdateUserEmail)
-	if err := c.BodyParser(body); err != nil {
-		var syntaxErr *json.SyntaxError
-		if errors.As(err, &syntaxErr) {
-			return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-				Message: invalidJSON,
-			})
-		}
-	}
-
-	if err := body.Validate(); err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
-			Message: "Validation error.",
-			Error:   err,
-		})
-	}
+	body := c.Locals("body").(*model.UpdateUserEmail)
 
 	if body.Email == auth.Email {
 		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
@@ -102,23 +68,7 @@ func UpdateUserEmail(c *fiber.Ctx) error {
 
 func UpdateUserPassword(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
-
-	body := new(model.UpdateUserPassword)
-	if err := c.BodyParser(body); err != nil {
-		var syntaxErr *json.SyntaxError
-		if errors.As(err, &syntaxErr) {
-			return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-				Message: invalidJSON,
-			})
-		}
-	}
-
-	if err := body.Validate(); err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
-			Message: validationErr,
-			Error:   err,
-		})
-	}
+	body := c.Locals("body").(*model.UpdateUserPassword)
 
 	user, err := service.GetUserByID(auth.ID)
 	if err != nil {

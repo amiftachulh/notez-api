@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 
@@ -10,28 +8,11 @@ import (
 	"github.com/amiftachulh/notez-api/service"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 )
 
 func CreateNoteInvitation(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
-
-	body := new(model.CreateNoteInvitation)
-	if err := c.BodyParser(body); err != nil {
-		var syntaxError *json.SyntaxError
-		if errors.As(err, &syntaxError) {
-			return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-				Message: invalidJSON,
-			})
-		}
-	}
-
-	if err := body.Validate(); err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
-			Message: validationErr,
-			Error:   err,
-		})
-	}
+	body := c.Locals("body").(*model.CreateNoteInvitation)
 
 	if auth.Email == body.Email {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
@@ -106,19 +87,12 @@ func GetNoteInvitations(c *fiber.Ctx) error {
 
 func RespondNoteInvitation(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
-
-	invitationID := c.Params("id")
-	id, err := uuid.Parse(invitationID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-			Message: "Invalid invitation ID.",
-		})
-	}
+	id := c.Locals("params").(*model.NoteInvitationParams).ID
 
 	body := new(model.RespondNoteInvitation)
 	if err := c.BodyParser(body); err != nil {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
-			Message: validationErr,
+			Message: "Validation failed.",
 			Error: map[string]string{
 				"accept": "Accept must be a boolean.",
 			},

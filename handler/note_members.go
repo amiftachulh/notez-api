@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
-	"errors"
 	"log"
 
 	"github.com/amiftachulh/notez-api/model"
@@ -13,14 +11,7 @@ import (
 
 func UpdateNoteMemberRole(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
-
-	noteID := c.Params("id")
-	id, err := uuid.Parse(noteID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-			Message: "Invalid note ID.",
-		})
-	}
+	id := c.Locals("params").(*model.NoteMemberParams).ID
 
 	isOwner, err := service.CheckIsNoteOwner(id, auth.ID)
 	if err != nil {
@@ -41,22 +32,7 @@ func UpdateNoteMemberRole(c *fiber.Ctx) error {
 		})
 	}
 
-	body := new(model.UpdateNoteMemberRole)
-	if err := c.BodyParser(body); err != nil {
-		var syntaxError *json.SyntaxError
-		if errors.As(err, &syntaxError) {
-			return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-				Message: invalidJSON,
-			})
-		}
-	}
-
-	if err := body.Validate(); err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(model.Response{
-			Message: validationErr,
-			Error:   err,
-		})
-	}
+	body := c.Locals("body").(*model.UpdateNoteMemberRole)
 
 	result, err := service.UpdateNoteMemberRole(id, mID, body.Role)
 	if err != nil {
@@ -76,16 +52,9 @@ func UpdateNoteMemberRole(c *fiber.Ctx) error {
 
 func RemoveNoteMember(c *fiber.Ctx) error {
 	auth := c.Locals("auth").(model.AuthUser)
+	params := c.Locals("params").(*model.NoteMemberParams)
 
-	noteID := c.Params("id")
-	id, err := uuid.Parse(noteID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-			Message: "Invalid note ID.",
-		})
-	}
-
-	isOwner, err := service.CheckIsNoteOwner(id, auth.ID)
+	isOwner, err := service.CheckIsNoteOwner(params.ID, auth.ID)
 	if err != nil {
 		log.Println("Error checking note owner:", err)
 		return fiber.ErrInternalServerError
@@ -96,15 +65,7 @@ func RemoveNoteMember(c *fiber.Ctx) error {
 		})
 	}
 
-	memberID := c.Params("memberID")
-	mID, err := uuid.Parse(memberID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(model.Response{
-			Message: "Invalid member ID.",
-		})
-	}
-
-	result, err := service.RemoveNoteMember(id, mID)
+	result, err := service.RemoveNoteMember(params.ID, params.MemberID)
 	if err != nil {
 		log.Println("Error removing note member:", err)
 		return fiber.ErrInternalServerError

@@ -25,6 +25,10 @@ func samePassword(str string) validation.RuleFunc {
 	}
 }
 
+func (r Register) New() interface{} {
+	return &Register{}
+}
+
 func (r Register) Validate() error {
 	return validation.ValidateStruct(
 		&r,
@@ -47,6 +51,10 @@ func (r Register) Validate() error {
 type Login struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+func (l Login) New() interface{} {
+	return &Login{}
 }
 
 func (l Login) Validate() error {

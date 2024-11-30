@@ -22,6 +22,10 @@ type UpdateUserInfo struct {
 	Name *string `json:"name,omitempty"`
 }
 
+func (u UpdateUserInfo) New() interface{} {
+	return &UpdateUserInfo{}
+}
+
 func (u UpdateUserInfo) Validate() error {
 	return validation.ValidateStruct(
 		&u,
@@ -39,6 +43,10 @@ type UpdateUserEmail struct {
 	Email string `json:"email"`
 }
 
+func (u UpdateUserEmail) New() interface{} {
+	return &UpdateUserEmail{}
+}
+
 func (u UpdateUserEmail) Validate() error {
 	return validation.ValidateStruct(
 		&u,
@@ -54,6 +62,10 @@ type UpdateUserPassword struct {
 	CurrentPassword string `json:"current_password"`
 	Password        string `json:"password"`
 	ConfirmPassword string `json:"confirm_password"`
+}
+
+func (u UpdateUserPassword) New() interface{} {
+	return &UpdateUserPassword{}
 }
 
 func (u UpdateUserPassword) Validate() error {
